@@ -193,7 +193,7 @@ conda install pytorch3d -c pytorch3d
 # install mmcv-full
 
 pip install "mmcv-full>=1.3.13,<1.4.0" -f https://download.openmmlab.com/mmcv/dist/cu102/torch1.8.0/index.html
-
+pip install "mmcv-full>=1.3.13,<1.4.0" -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.8.0/index.html
 
 # Optional
 # install mmdetection & mmpose & mmtracking
