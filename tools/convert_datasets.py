@@ -19,10 +19,10 @@ DATASET_CONFIGS = dict(
         modes=['train', 'valid'],
         protocol=1,
         mosh_dir='data/datasets/h36m_mosh',
-        prefix='h36m', extract_img=True),
+        prefix='h36m'),
     h36m_p2=dict(
         type='H36mConverter', modes=['valid'], protocol=2, prefix='h36m'),
-    mpi_inf_3dhp=dict(type='MpiInf3dhpConverter', modes=['train', 'test'], extract_img=True),
+    mpi_inf_3dhp=dict(type='MpiInf3dhpConverter', modes=['train', 'test']),
     penn_action=dict(type='PennActionConverter'),
     lsp_original=dict(type='LspConverter', modes=['train'], prefix='lsp'),
     lsp_dataset=dict(type='LspConverter', modes=['test']),
@@ -49,10 +49,6 @@ DATASET_CONFIGS = dict(
         type='SpinConverter',
         modes=['coco_2014', 'lsp', 'mpii', 'mpi_inf_3dhp', 'lspet'],
         prefix='spin_data'),
-    # spin=dict(
-    #     type='SpinConverter',
-    #     modes=['mpii'],
-    #     prefix='spin_data'),
     h36m_spin=dict(
         type='H36mSpinConverter',
         modes=['train'],
