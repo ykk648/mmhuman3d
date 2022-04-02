@@ -46,7 +46,7 @@ def quat_to_rotmat(quat):
         w2 - x2 + y2 - z2, 2 * yz - 2 * wx, 2 * xz - 2 * wy, 2 * wx + 2 * yz,
         w2 - x2 - y2 + z2
     ],
-                         dim=1).view(B, 3, 3)
+        dim=1).view(B, 3, 3)
     return rotMat
 
 
@@ -206,7 +206,7 @@ def rotation_matrix_to_quaternion(rotation_matrix, eps=1e-6):
     t3 = 1 + rmat_t[:, 0, 0] + rmat_t[:, 1, 1] + rmat_t[:, 2, 2]
     q3 = torch.stack([
         t3, rmat_t[:, 1, 2] - rmat_t[:, 2, 1],
-        rmat_t[:, 2, 0] - rmat_t[:, 0, 2], rmat_t[:, 0, 1] - rmat_t[:, 1, 0]
+            rmat_t[:, 2, 0] - rmat_t[:, 0, 2], rmat_t[:, 0, 1] - rmat_t[:, 1, 0]
     ], -1)
     t3_rep = t3.repeat(4, 1).t()
 
@@ -303,7 +303,12 @@ def estimate_translation_np(S,
     b = np.dot(Q.T, c)
 
     # solution
-    trans = np.linalg.solve(A, b)
+    try:
+        trans = np.linalg.solve(A, b)
+    except np.linalg.LinAlgError:
+        print(S)
+        print(joints_2d)
+        return np.zeros(3, dtype=np.float32)
 
     return trans
 
@@ -359,9 +364,9 @@ def project_points(points_3d, camera, focal_length, img_res):
     device = points_3d.device
     cam_t = torch.stack([
         camera[:, 1], camera[:, 2], 2 * focal_length /
-        (img_res * camera[:, 0] + 1e-9)
+                                    (img_res * camera[:, 0] + 1e-9)
     ],
-                        dim=-1)
+        dim=-1)
     camera_center = camera.new_zeros([batch_size, 2])
     rot_t = torch.eye(
         3, device=device,

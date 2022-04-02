@@ -88,6 +88,9 @@ class HMRHead(BaseModule):
             pred_shape = self.decshape(xc) + pred_shape
             pred_cam = self.deccam(xc) + pred_cam
 
+        # for onnx
+        # return pred_pose, pred_shape, pred_cam
+
         pred_rotmat = rot6d_to_rotmat(pred_pose).view(batch_size, 24, 3, 3)
 
         if output_seq:
