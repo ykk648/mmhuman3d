@@ -11,7 +11,7 @@ import torch
 
 from mmhuman3d.utils.transforms import aa_to_rotmat
 
-train_datasets = ['h36m', 'mpi_inf_3dhp', 'lsp', 'lspet', 'mpii', 'coco']
+train_datasets = ['h36m', 'mpi_inf_3dhp', 'lsp', 'lspet', 'mpii', 'coco', 'dance_0406_bobing', 'agora']
 static_fits_load_dir = 'data/static_fits'
 save_dir = 'data/spin_fits'
 

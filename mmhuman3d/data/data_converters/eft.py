@@ -24,7 +24,7 @@ class EftConverter(BaseModeConverter):
         modes (list): 'coco_all', 'coco_part', 'mpii' and/or 'lspet' for
         accepted modes
     """
-    ACCEPTED_MODES = ['coco_all', 'coco_part', 'mpii', 'lspet']
+    ACCEPTED_MODES = ['coco_all', 'coco_part', 'mpii', 'lspet', 'lspet_train', 'lspet_test', 'dance_0406_bobing']
 
     def __init__(self, modes: List = []) -> None:
         super(EftConverter, self).__init__(modes)
@@ -34,7 +34,10 @@ class EftConverter(BaseModeConverter):
             'coco_part':
             ['coco_2014_train_fit/COCO2014-Part-ver01.json', 'train2014/'],
             'lspet': ['LSPet_fit/LSPet_ver01.json', ''],
-            'mpii': ['MPII_fit/MPII_ver01.json', 'images/']
+            'lspet_train': ['LSPet_fit/LSPet_train_ver10.json', ''],
+            'lspet_test': ['LSPet_fit/LSPet_test_ver10.json', ''],
+            'mpii': ['MPII_fit/MPII_ver01.json', 'images/'],
+            'dance_0406_bobing': ['dance_0406_bobing_fit/dance_0406_bobing.json', '']
         }
 
     @staticmethod
@@ -66,6 +69,8 @@ class EftConverter(BaseModeConverter):
         smpl['body_pose'] = []
         smpl['global_orient'] = []
 
+        # spin_fits= []
+
         if mode in self.json_mapping_dict.keys():
             annot_file = os.path.join(dataset_path,
                                       self.json_mapping_dict[mode][0])
@@ -96,6 +101,8 @@ class EftConverter(BaseModeConverter):
             smpl['global_orient'].append(pose_rotmat[0].reshape(-1, 3))
             smpl['betas'].append(beta)
 
+            # spin_fits.append(np.concatenate([pose_rotmat.reshape(-1), beta], axis=0))
+
             # store data
             image_path_.append(image_prefix + image_name)
             bbox_xywh_.append(bbox_xywh)
@@ -123,3 +130,5 @@ class EftConverter(BaseModeConverter):
 
         out_file = os.path.join(out_path, 'eft_{}.npz'.format(mode))
         human_data.dump(out_file)
+
+        # np.save(os.path.join(out_path, '{}_fits.npy'.format(mode)), np.array(spin_fits))

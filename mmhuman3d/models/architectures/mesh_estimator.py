@@ -635,6 +635,12 @@ class ImageBodyModelEstimator(BodyModelEstimator):
         # Image Mesh Estimator does not need extra process for ground truth
         return data_batch
 
+    # for onnx convert
+    # def forward(self, img):
+    #     features = self.backbone(img)
+    #     predictions = self.head(features)
+    #     return predictions
+
     def forward_test(self, img: torch.Tensor, img_metas: dict, **kwargs):
         """Defines the computation performed at every call when testing."""
         if self.backbone is not None:

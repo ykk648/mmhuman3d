@@ -5,7 +5,7 @@ from mmhuman3d.data.data_converters import build_data_converter
 
 DATASET_CONFIGS = dict(
     agora=dict(
-        type='AgoraConverter', modes=['train', 'validation'], fit='smplx'),
+        type='AgoraConverter', modes=['train', 'validation'], fit='smpl'),
     amass=dict(type='AmassConverter', prefix='AMASS_file'),
     coco=dict(type='CocoConverter'),
     coco_wholebody=dict(
@@ -32,7 +32,9 @@ DATASET_CONFIGS = dict(
     posetrack=dict(type='PosetrackConverter', modes=['train', 'val']),
     instavariety_vibe=dict(type='InstaVibeConverter', prefix='vibe_data'),
     eft=dict(
-        type='EftConverter', modes=['coco_all', 'coco_part', 'mpii', 'lspet']),
+        type='EftConverter', modes=['coco_all', 'coco_part', 'mpii', 'lspet', 'lspet_train', 'lspet_test']),
+    eft_local=dict(
+        type='EftConverter', modes=['dance_0406_bobing']),
     coco_hybrik=dict(type='CocoHybrIKConverter', prefix='coco/train_2017'),
     pw3d_hybrik=dict(type='Pw3dHybrIKConverter', prefix='hybrik_data'),
     h36m_hybrik=dict(
