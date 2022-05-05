@@ -24,7 +24,7 @@ class EftConverter(BaseModeConverter):
         modes (list): 'coco_all', 'coco_part', 'mpii' and/or 'lspet' for
         accepted modes
     """
-    ACCEPTED_MODES = ['coco_all', 'coco_part', 'mpii', 'lspet']
+    ACCEPTED_MODES = ['coco_all', 'coco_part', 'mpii', 'lspet', 'lspet_train', 'lspet_test', 'dy_dance_0420']
 
     def __init__(self, modes: List = []) -> None:
         super(EftConverter, self).__init__(modes)
@@ -34,7 +34,10 @@ class EftConverter(BaseModeConverter):
             'coco_part':
             ['coco_2014_train_fit/COCO2014-Part-ver01.json', 'train2014/'],
             'lspet': ['LSPet_fit/LSPet_ver01.json', ''],
-            'mpii': ['MPII_fit/MPII_ver01.json', 'images/']
+            'lspet_train': ['LSPet_fit/LSPet_train_ver10.json', ''],
+            'lspet_test': ['LSPet_fit/LSPet_test_ver10.json', ''],
+            'mpii': ['MPII_fit/MPII_ver01.json', 'images/'],
+            'dy_dance_0420': ['dy_dance_0420_fit/dy_dance_0420.json', '']
         }
 
     @staticmethod
@@ -66,6 +69,8 @@ class EftConverter(BaseModeConverter):
         smpl['body_pose'] = []
         smpl['global_orient'] = []
 
+        # spin_fits= []
+
         if mode in self.json_mapping_dict.keys():
             annot_file = os.path.join(dataset_path,
                                       self.json_mapping_dict[mode][0])
@@ -89,12 +94,16 @@ class EftConverter(BaseModeConverter):
 
             # (49, 3) keypoints2d in image space according to SPIN format
             gt_keypoint_2d = data['gt_keypoint_2d']
+            # # print(gt_keypoint_2d)
+            # assert np.array(gt_keypoint_2d).shape == (49,3)
 
             image_name = data['imageName']
 
             smpl['body_pose'].append(pose_rotmat[1:].reshape((23, 3)))
             smpl['global_orient'].append(pose_rotmat[0].reshape(-1, 3))
             smpl['betas'].append(beta)
+
+            # spin_fits.append(np.concatenate([pose_rotmat.reshape(-1), beta], axis=0))
 
             # store data
             image_path_.append(image_prefix + image_name)
@@ -123,3 +132,5 @@ class EftConverter(BaseModeConverter):
 
         out_file = os.path.join(out_path, 'eft_{}.npz'.format(mode))
         human_data.dump(out_file)
+
+        # np.save(os.path.join(out_path, '{}_fits.npy'.format(mode)), np.array(spin_fits))

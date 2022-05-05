@@ -47,7 +47,7 @@ class AgoraConverter(BaseModeConverter):
                           i,
                           pNum,
                           globalOrient=None,
-                          meanPose=False):
+                          meanPose=True):
         """Modified from https://github.com/pixelite1201/agora_evaluation/blob/
         master/agora_evaluation/projection.py specific to AGORA.
 
@@ -196,6 +196,8 @@ class AgoraConverter(BaseModeConverter):
             if f.endswith('.pkl') and '{}'.format(mode) in f
         ]
 
+        spin_fits = []
+
         for filename in tqdm(sorted(annot_dataframes)):
             df = pickle.load(open(filename, 'rb'))
             for idx in tqdm(range(len(df))):
@@ -217,11 +219,6 @@ class AgoraConverter(BaseModeConverter):
                     if self.res == (1280, 720):
                         keypoints2d *= (720 / 2160)
                     keypoints3d = df.iloc[idx]['gt_joints_3d'][pidx]
-
-                    # mod 3d-kp
-                    # from .projection import project_2d
-                    # _, keypoints3d = project_2d(img_path, df, idx, pidx, keypoints3d)
-
 
                     gt_bodymodel_path = os.path.join(
                         dataset_path,
@@ -257,92 +254,103 @@ class AgoraConverter(BaseModeConverter):
                         body_model['transl'].append(
                             ann['translation'].cpu().detach().numpy())
 
+                    # print(len(global_orient.reshape(-1)))
+                    # print(len(ann['body_pose'].reshape(-1)))
+                    # print(len(ann['betas'].reshape(-1)[:10]))
+                    # raise '111'
                     global_orient = self.get_global_orient(
                         img_path, df, idx, pidx, global_orient.reshape(-1))
+                    spin_fits.append(np.concatenate(
+                        [global_orient.reshape(-1), ann['body_pose'].reshape(-1),
+                         ann['betas'].reshape(-1)[:10]], axis=0))
+                break
+            break
 
-                    # add confidence column
-                    keypoints2d = np.hstack(
-                        [keypoints2d, np.ones((num_keypoints, 1))])
-                    keypoints3d = np.hstack(
-                        [keypoints3d, np.ones((num_keypoints, 1))])
+                    # # add confidence column
+                    # keypoints2d = np.hstack(
+                    #     [keypoints2d, np.ones((num_keypoints, 1))])
+                    # keypoints3d = np.hstack(
+                    #     [keypoints3d, np.ones((num_keypoints, 1))])
+                    #
+                    # bbox_xyxy = [
+                    #     min(keypoints2d[:, 0]),
+                    #     min(keypoints2d[:, 1]),
+                    #     max(keypoints2d[:, 0]),
+                    #     max(keypoints2d[:, 1])
+                    # ]
+                    # bbox_xyxy = self._bbox_expand(bbox_xyxy, scale_factor=1.2)
+                    # bbox_xywh = self._xyxy2xywh(bbox_xyxy)
+                    #
+                    # keypoints2d_.append(keypoints2d)
+                    # keypoints3d_.append(keypoints3d)
+                    # bbox_xywh_.append(bbox_xywh)
+                    # image_path_.append(img_path)
+                    # body_model['global_orient'].append(global_orient)
+                    # meta['gender'].append(gender)
+                    # meta['age'].append(age)
+                    # meta['kid'].append(kid)
+                    # meta['occlusion'].append(occlusion)
+                    # meta['ethnicity'].append(ethnicity)
 
-                    bbox_xyxy = [
-                        min(keypoints2d[:, 0]),
-                        min(keypoints2d[:, 1]),
-                        max(keypoints2d[:, 0]),
-                        max(keypoints2d[:, 1])
-                    ]
-                    bbox_xyxy = self._bbox_expand(bbox_xyxy, scale_factor=1.2)
-                    bbox_xywh = self._xyxy2xywh(bbox_xyxy)
+        # # change list to np array
+        # if self.fit == 'smplx':
+        #     body_model['left_hand_pose'] = np.array(
+        #         body_model['left_hand_pose']).reshape((-1, 15, 3))
+        #     body_model['right_hand_pose'] = np.array(
+        #         body_model['right_hand_pose']).reshape((-1, 15, 3))
+        #     body_model['expression'] = np.array(
+        #         body_model['expression']).reshape((-1, 10))
+        #     body_model['leye_pose'] = np.array(
+        #         body_model['leye_pose']).reshape((-1, 3))
+        #     body_model['reye_pose'] = np.array(
+        #         body_model['reye_pose']).reshape((-1, 3))
+        #     body_model['jaw_pose'] = np.array(body_model['jaw_pose']).reshape(
+        #         (-1, 3))
+        #
+        # body_model['body_pose'] = np.array(body_model['body_pose']).reshape(
+        #     (-1, num_body_pose, 3))
+        # body_model['global_orient'] = np.array(
+        #     body_model['global_orient']).reshape((-1, 3))
+        # body_model['betas'] = np.array(body_model['betas']).reshape((-1, 10))
+        # body_model['transl'] = np.array(body_model['transl']).reshape((-1, 3))
+        #
+        # meta['gender'] = np.array(meta['gender'])
+        # meta['age'] = np.array(meta['age'])
+        # meta['kid'] = np.array(meta['kid'])
+        # meta['occlusion'] = np.array(meta['occlusion'])
+        # meta['ethnicity'] = np.array(meta['ethnicity'])
+        #
+        # bbox_xywh_ = np.array(bbox_xywh_).reshape((-1, 4))
+        # bbox_xywh_ = np.hstack([bbox_xywh_, np.ones([bbox_xywh_.shape[0], 1])])
+        #
+        # # change list to np array
+        # keypoints2d_ = np.array(keypoints2d_).reshape((-1, num_keypoints, 3))
+        # keypoints2d_, mask = convert_kps(keypoints2d_, keypoints_convention,
+        #                                  'human_data')
+        # keypoints3d_ = np.array(keypoints3d_).reshape((-1, num_keypoints, 4))
+        # keypoints3d_, _ = convert_kps(keypoints3d_, keypoints_convention,
+        #                               'human_data')
+        #
+        # human_data['image_path'] = image_path_
+        # human_data['bbox_xywh'] = bbox_xywh_
+        # human_data['keypoints2d_mask'] = mask
+        # human_data['keypoints3d_mask'] = mask
+        # human_data['keypoints2d'] = keypoints2d_
+        # human_data['keypoints3d'] = keypoints3d_
+        # human_data['meta'] = meta
+        # human_data['config'] = 'agora'
+        # if self.fit == 'smplx':
+        #     human_data['smplx'] = body_model
+        # else:
+        #     human_data['smpl'] = body_model
+        # human_data.compress_keypoints_by_mask()
+        #
+        # # store data
+        # if not os.path.isdir(out_path):
+        #     os.makedirs(out_path)
+        #
+        # file_name = f'agora_{mode}_{self.fit}.npz'
+        # out_file = os.path.join(out_path, file_name)
+        # human_data.dump(out_file)
 
-                    keypoints2d_.append(keypoints2d)
-                    keypoints3d_.append(keypoints3d)
-                    bbox_xywh_.append(bbox_xywh)
-                    image_path_.append(img_path)
-                    body_model['global_orient'].append(global_orient)
-                    meta['gender'].append(gender)
-                    meta['age'].append(age)
-                    meta['kid'].append(kid)
-                    meta['occlusion'].append(occlusion)
-                    meta['ethnicity'].append(ethnicity)
-
-        # change list to np array
-        if self.fit == 'smplx':
-            body_model['left_hand_pose'] = np.array(
-                body_model['left_hand_pose']).reshape((-1, 15, 3))
-            body_model['right_hand_pose'] = np.array(
-                body_model['right_hand_pose']).reshape((-1, 15, 3))
-            body_model['expression'] = np.array(
-                body_model['expression']).reshape((-1, 10))
-            body_model['leye_pose'] = np.array(
-                body_model['leye_pose']).reshape((-1, 3))
-            body_model['reye_pose'] = np.array(
-                body_model['reye_pose']).reshape((-1, 3))
-            body_model['jaw_pose'] = np.array(body_model['jaw_pose']).reshape(
-                (-1, 3))
-
-        body_model['body_pose'] = np.array(body_model['body_pose']).reshape(
-            (-1, num_body_pose, 3))
-        body_model['global_orient'] = np.array(
-            body_model['global_orient']).reshape((-1, 3))
-        body_model['betas'] = np.array(body_model['betas']).reshape((-1, 10))
-        body_model['transl'] = np.array(body_model['transl']).reshape((-1, 3))
-
-        meta['gender'] = np.array(meta['gender'])
-        meta['age'] = np.array(meta['age'])
-        meta['kid'] = np.array(meta['kid'])
-        meta['occlusion'] = np.array(meta['occlusion'])
-        meta['ethnicity'] = np.array(meta['ethnicity'])
-
-        bbox_xywh_ = np.array(bbox_xywh_).reshape((-1, 4))
-        bbox_xywh_ = np.hstack([bbox_xywh_, np.ones([bbox_xywh_.shape[0], 1])])
-
-        # change list to np array
-        keypoints2d_ = np.array(keypoints2d_).reshape((-1, num_keypoints, 3))
-        keypoints2d_, mask = convert_kps(keypoints2d_, keypoints_convention,
-                                         'human_data')
-        keypoints3d_ = np.array(keypoints3d_).reshape((-1, num_keypoints, 4))
-        keypoints3d_, _ = convert_kps(keypoints3d_, keypoints_convention,
-                                      'human_data')
-
-        human_data['image_path'] = image_path_
-        human_data['bbox_xywh'] = bbox_xywh_
-        human_data['keypoints2d_mask'] = mask
-        human_data['keypoints3d_mask'] = mask
-        human_data['keypoints2d'] = keypoints2d_
-        human_data['keypoints3d'] = keypoints3d_
-        human_data['meta'] = meta
-        human_data['config'] = 'agora'
-        if self.fit == 'smplx':
-            human_data['smplx'] = body_model
-        else:
-            human_data['smpl'] = body_model
-        human_data.compress_keypoints_by_mask()
-
-        # store data
-        if not os.path.isdir(out_path):
-            os.makedirs(out_path)
-
-        file_name = f'agora_{mode}_{self.fit}.npz'
-        out_file = os.path.join(out_path, file_name)
-        human_data.dump(out_file)
+        np.save(os.path.join(out_path, 'agora_fits_smpl_temp.npy'), np.array(spin_fits))

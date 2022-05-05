@@ -103,11 +103,16 @@ model = dict(
     loss_smpl_betas=dict(type='MSELoss', loss_weight=0.02),
     loss_camera=dict(type='CameraPriorLoss', loss_weight=60),
     init_cfg=dict(
+        # type='Pretrained', checkpoint='work_dir/spin_b128_hmr_eft-spinmosh-agora/latest.pth'))
         type='Pretrained', checkpoint='data/pretrained/spin_pretrain.pth'))
 # dataset settings
 dataset_type = 'HumanImageDataset'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+
+# IMG_NORM_MEAN = [0.485, 0.456, 0.406]
+# IMG_NORM_STD = [0.229, 0.224, 0.225]
+
 data_keys = [
     'has_smpl', 'smpl_body_pose', 'smpl_global_orient', 'smpl_betas',
     'smpl_transl', 'keypoints2d', 'keypoints3d', 'is_flipped', 'center',
@@ -158,7 +163,7 @@ data = dict(
                 data_prefix='data',
                 pipeline=train_pipeline,
                 convention='smpl_49',
-                ann_file='h36m_mosh_train.npz'),
+                ann_file='spin_h36m_train.npz'),
             dict(
                 type=dataset_type,
                 dataset_name='mpi_inf_3dhp',
@@ -179,23 +184,39 @@ data = dict(
                 data_prefix='data',
                 pipeline=train_pipeline,
                 convention='smpl_49',
-                ann_file='spin_lspet_train.npz'),
+                ann_file='eft_lspet.npz'),
             dict(
                 type=dataset_type,
                 dataset_name='mpii',
                 data_prefix='data',
                 pipeline=train_pipeline,
                 convention='smpl_49',
-                ann_file='spin_mpii_train.npz'),
+                ann_file='eft_mpii.npz'),
             dict(
                 type=dataset_type,
                 dataset_name='coco',
                 data_prefix='data',
                 pipeline=train_pipeline,
                 convention='smpl_49',
-                ann_file='spin_coco_2014_train.npz'),
+                # ann_file='spin_coco_2014_train.npz'),
+                ann_file='eft_coco_part.npz'),
+            # dict(
+            #     type=dataset_type,
+            #     dataset_name='agora',
+            #     data_prefix='data',
+            #     pipeline=train_pipeline,
+            #     convention='smpl_49',
+            #     ann_file='agora_train_smpl.npz'),
+            dict(
+                type=dataset_type,
+                dataset_name='dy_dance_0420',
+                data_prefix='data',
+                pipeline=train_pipeline,
+                convention='smpl_49',
+                ann_file='eft_dy_dance_0420.npz'),
         ],
-        partition=[0.35, 0.15, 0.1, 0.10, 0.10, 0.2],
+        # partition=[0.35, 0.15, 0.1, 0.1, 0.10, 0.2],
+        partition=[0., 0.15, 0.1, 0.15, 0.20, 0.2, 0.2],
         num_data=100000,
     ),
     test=dict(

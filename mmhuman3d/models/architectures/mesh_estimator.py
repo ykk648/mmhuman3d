@@ -232,6 +232,7 @@ class BodyModelEstimator(BaseArchitecture, metaclass=ABCMeta):
         pred_cam_t = predictions['pred_cam'].detach().clone()
 
         gt_keypoints_2d = targets['keypoints2d'].float()
+        # print(gt_keypoints_2d.shape)
 
         # try:
         #     gt_keypoints_2d = torch.cat(
@@ -568,6 +569,7 @@ class BodyModelEstimator(BaseArchitecture, metaclass=ABCMeta):
                                        has_smpl: torch.Tensor,
                                        img_res: Optional[int] = 224,
                                        focal_length: Optional[int] = 500):
+        """Compute loss for part segmentations."""
         device = gt_keypoints2d.device
         gt_keypoints2d_valid = gt_keypoints2d[has_smpl == 1]
         batch_size = gt_keypoints2d_valid.shape[0]
@@ -761,6 +763,12 @@ class ImageBodyModelEstimator(BodyModelEstimator):
     def prepare_targets(self, data_batch: dict):
         # Image Mesh Estimator does not need extra process for ground truth
         return data_batch
+
+    # for onnx convert
+    # def forward(self, img):
+    #     features = self.backbone(img)
+    #     predictions = self.head(features)
+    #     return predictions
 
     def forward_test(self, img: torch.Tensor, img_metas: dict, **kwargs):
         """Defines the computation performed at every call when testing."""

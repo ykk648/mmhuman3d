@@ -1,25 +1,24 @@
 use_adversarial_train = True
 
-# evaluate
-evaluation = dict(interval=10, metric=['pa-mpjpe', 'mpjpe'])
-# optimizer
-
+evaluation = dict(interval=6, metric=['pa-mpjpe', 'mpjpe'])
 optimizer = dict(
-    backbone=dict(type='Adam', lr=2.0e-4),
-    head=dict(type='Adam', lr=2.0e-4),
+    backbone=dict(type='Adam', lr=5.0e-5),
+    head=dict(type='Adam', lr=5.0e-5),
 )
 optimizer_config = dict(grad_clip=None)
 
 lr_config = dict(policy='Fixed', by_epoch=False)
-runner = dict(type='EpochBasedRunner', max_epochs=200)
+runner = dict(type='EpochBasedRunner', max_epochs=50)
 
 log_config = dict(
     interval=50, hooks=[
         dict(type='TextLoggerHook'),
     ])
 
+checkpoint_config = dict(interval=6)
+
 _base_ = ['../_base_/default_runtime.py']
-checkpoint_config = dict(interval=10)
+
 width = 32
 downsample = False
 use_conv = True
@@ -75,9 +74,7 @@ model = dict(
         type='PoseHighResolutionNet',
         extra=hrnet_extra,
         num_joints=24,
-        init_cfg=dict(
-            type='Pretrained',
-            checkpoint='data/pretrained_models/hrnet_pretrain.pth')),
+    ),
     head=dict(
         type='PareHead',
         num_joints=24,
@@ -95,7 +92,7 @@ model = dict(
     body_model_train=dict(
         type='SMPL',
         keypoint_src='smpl_54',
-        keypoint_dst='smpl_49',
+        keypoint_dst='smpl_24',
         model_path='data/body_models/smpl',
         keypoint_approximate=True,
         extra_joints_regressor='data/body_models/J_regressor_extra.npy'),
@@ -105,13 +102,15 @@ model = dict(
         keypoint_dst='h36m',
         model_path='data/body_models/smpl',
         joints_regressor='data/body_models/J_regressor_h36m.npy'),
-    convention='smpl_49',
+    convention='smpl_24',
     loss_keypoints3d=dict(type='MSELoss', loss_weight=300),
-    loss_keypoints2d=dict(type='MSELoss', loss_weight=300),
+    loss_keypoints2d=dict(type='MSELoss', loss_weight=150),
     loss_smpl_pose=dict(type='MSELoss', loss_weight=60),
     loss_smpl_betas=dict(type='MSELoss', loss_weight=60 * 0.001),
-    loss_segm_mask=dict(type='CrossEntropyLoss', loss_weight=60),
     loss_camera=dict(type='CameraPriorLoss', loss_weight=1),
+    init_cfg=dict(
+        type='Pretrained',
+        checkpoint=('data/pretrained_models/hrnet_w32_conv_pare_coco.pth')),
 )
 
 # dataset settings
@@ -126,10 +125,7 @@ data_keys = [
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='RandomChannelNoise', noise_factor=0.4),
-    dict(
-        type='SyntheticOcclusion',
-        occluders_file='data/occluders/pascal_occluders.npy'),
-    dict(type='RandomHorizontalFlip', flip_prob=0.5, convention='smpl_49'),
+    dict(type='RandomHorizontalFlip', flip_prob=0.5, convention='smpl_24'),
     dict(type='GetRandomScaleRotation', rot_factor=30, scale_factor=0.25),
     dict(type='MeshAffine', img_res=224),
     dict(type='Normalize', **img_norm_cfg),
@@ -164,24 +160,49 @@ inference_pipeline = [
         meta_keys=['image_path', 'center', 'scale', 'rotation'])
 ]
 
-cache_files = {'coco': 'data/cache/coco_2014_train_smpl_49.npz'}
-
 data = dict(
-    samples_per_gpu=64,
+    samples_per_gpu=32,
     workers_per_gpu=0,
     train=dict(
         type='MixedDataset',
         configs=[
             dict(
                 type=dataset_type,
+                dataset_name='h36m',
+                data_prefix='data',
+                pipeline=train_pipeline,
+                convention='smpl_24',
+                ann_file='h36m_train.npz'),
+            dict(
+                type=dataset_type,
                 dataset_name='coco',
                 data_prefix='data',
                 pipeline=train_pipeline,
-                convention='smpl_49',
-                cache_data_path=cache_files['coco'],
+                convention='smpl_24',
                 ann_file='eft_coco_all.npz'),
+            dict(
+                type=dataset_type,
+                dataset_name='lspet',
+                data_prefix='data',
+                pipeline=train_pipeline,
+                convention='smpl_24',
+                ann_file='eft_lspet.npz'),
+            dict(
+                type=dataset_type,
+                dataset_name='mpii',
+                data_prefix='data',
+                pipeline=train_pipeline,
+                convention='smpl_24',
+                ann_file='eft_mpii.npz'),
+            dict(
+                type=dataset_type,
+                dataset_name='mpi-inf-3dhp',
+                data_prefix='data',
+                pipeline=train_pipeline,
+                convention='smpl_24',
+                ann_file='mpi_inf_3dhp_train_mmhuman3d.npz'),
         ],
-        partition=[1.0],
+        partition=[0.5, 0.233, 0.046, 0.021, 0.2],
     ),
     test=dict(
         type=dataset_type,
