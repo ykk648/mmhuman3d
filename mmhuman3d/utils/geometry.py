@@ -345,6 +345,15 @@ def estimate_translation(S, joints_2d, focal_length=5000., img_size=224.):
             conf_i,
             focal_length=focal_length,
             img_size=img_size)
+    # try:
+    #     trans[i] = estimate_translation_np(
+    #         S_i,
+    #         joints_i,
+    #         conf_i,
+    #         focal_length=focal_length,
+    #         img_size=img_size)
+    # except:
+    #     trans[i] = np.zeros(3, dtype=np.float32)
     return torch.from_numpy(trans).to(device)
 
 

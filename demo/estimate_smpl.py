@@ -40,6 +40,7 @@ except (ImportError, ModuleNotFoundError):
 try:
     from mmtrack.apis import inference_mot
     from mmtrack.apis import init_model as init_tracking_model
+
     has_mmtrack = True
 except (ImportError, ModuleNotFoundError):
     has_mmtrack = False
@@ -136,8 +137,8 @@ def single_person_with_mmdet(args, frames_iter):
         args.mesh_reg_checkpoint,
         device=args.device.lower())
 
-    pred_cams, verts, smpl_poses, smpl_betas, bboxes_xyxy = \
-        [], [], [], [], []
+    pred_cams, verts, smpl_poses, smpl_betas, bboxes_xyxy, keypoints_3d = \
+        [], [], [], [], [], []
 
     frame_id_list, result_list = \
         get_detection_result(args, frames_iter, mesh_model, extractor)
@@ -149,7 +150,8 @@ def single_person_with_mmdet(args, frames_iter):
         speed_up_frames = (frame_num -
                            1) // speed_up_interval * speed_up_interval
 
-    for i, result in enumerate(mmcv.track_iter_progress(result_list)):
+    from tqdm import tqdm
+    for i, result in tqdm(enumerate(mmcv.track_iter_progress(result_list))):
         frame_id = frame_id_list[i]
         if mesh_model.cfg.model.type == 'VideoBodyModelEstimator':
             if args.speed_up_type:
@@ -164,8 +166,8 @@ def single_person_with_mmdet(args, frames_iter):
                 extracted_results=feature_results_seq,
                 with_track_id=False)
         elif mesh_model.cfg.model.type == 'ImageBodyModelEstimator':
-            if args.speed_up_type and i % speed_up_interval != 0\
-                 and i <= speed_up_frames:
+            if args.speed_up_type and i % speed_up_interval != 0 \
+                    and i <= speed_up_frames:
                 mesh_results = [{
                     'bbox': np.zeros((5)),
                     'camera': np.zeros((3)),
@@ -190,12 +192,20 @@ def single_person_with_mmdet(args, frames_iter):
         pred_cams.append(mesh_results[0]['camera'])
         verts.append(mesh_results[0]['vertices'])
         bboxes_xyxy.append(mesh_results[0]['bbox'])
+        keypoints_3d.append(mesh_results[0]['keypoints_3d'])
+
+    # for i in range(len(smpl_betas)):
+    #     smpl_betas[i] = smpl_betas[0]
+    # for i in range(len(pred_cams)):
+    #     pred_cams[i] = pred_cams[0]
+    # # smpl_betas = [smpl_betas[0]*len(smpl_betas)]
 
     smpl_poses = np.array(smpl_poses)
     smpl_betas = np.array(smpl_betas)
     pred_cams = np.array(pred_cams)
     verts = np.array(verts)
     bboxes_xyxy = np.array(bboxes_xyxy)
+    keypoints_3d = np.array(keypoints_3d)
 
     # release GPU memory
     del mesh_model
@@ -218,6 +228,7 @@ def single_person_with_mmdet(args, frames_iter):
         smpl_poses = smooth_process(
             smpl_poses.reshape(frame_num, 24, 9), smooth_type=args.smooth_type)
         verts = smooth_process(verts, smooth_type=args.smooth_type)
+        keypoints_3d = smooth_process(keypoints_3d, smooth_type=args.smooth_type)
         smpl_poses = smpl_poses.reshape(frame_num, 24, 3, 3)
 
     if smpl_poses.shape[1:] == (24, 3, 3):
@@ -229,8 +240,8 @@ def single_person_with_mmdet(args, frames_iter):
 
     if args.output is not None:
         body_pose_, global_orient_, smpl_betas_, verts_, pred_cams_, \
-            bboxes_xyxy_, image_path_, person_id_, frame_id_ = \
-            [], [], [], [], [], [], [], [], []
+        bboxes_xyxy_, image_path_, person_id_, frame_id_, keypoints_3d_ = \
+            [], [], [], [], [], [], [], [], [], []
         human_data = HumanData()
         frames_folder = osp.join(args.output, 'images')
         os.makedirs(frames_folder, exist_ok=True)
@@ -242,6 +253,7 @@ def single_person_with_mmdet(args, frames_iter):
             global_orient_.append(smpl_poses[i][:1])
             smpl_betas_.append(smpl_betas[i])
             verts_.append(verts[i])
+            keypoints_3d_.append(keypoints_3d[i])
             pred_cams_.append(pred_cams[i])
             bboxes_xyxy_.append(bboxes_xyxy[i])
             image_path_.append(os.path.join('images', img_i))
@@ -254,6 +266,7 @@ def single_person_with_mmdet(args, frames_iter):
         smpl['betas'] = np.array(smpl_betas_).reshape((-1, 10))
         human_data['smpl'] = smpl
         human_data['verts'] = verts_
+        human_data['keypoints_3d'] = keypoints_3d_
         human_data['pred_cams'] = pred_cams_
         human_data['bboxes_xyxy'] = bboxes_xyxy_
         human_data['image_path'] = image_path_
@@ -277,9 +290,11 @@ def single_person_with_mmdet(args, frames_iter):
             betas=smpl_betas,
             cam_transl=pred_cams,
             bbox=bboxes_xyxy,
+            # kp3d=keypoints_3d,
             output_path=args.show_path,
             render_choice=args.render_choice,
             resolution=frames_iter[0].shape[:2],
+            # origin_frames=None,
             origin_frames=frames_folder,
             body_model_config=body_model_config,
             overwrite=True,
@@ -333,8 +348,8 @@ def multi_person_with_mmtracking(args, frames_iter):
                 extracted_results=feature_results_seq,
                 with_track_id=True)
         elif mesh_model.cfg.model.type == 'ImageBodyModelEstimator':
-            if args.speed_up_type and i % speed_up_interval != 0\
-                 and i <= speed_up_frames:
+            if args.speed_up_type and i % speed_up_interval != 0 \
+                    and i <= speed_up_frames:
                 mesh_results = []
                 for idx in range(len(result)):
                     mesh_result = result[idx].copy()
@@ -400,7 +415,7 @@ def multi_person_with_mmtracking(args, frames_iter):
 
     if args.output is not None:
         body_pose_, global_orient_, smpl_betas_, verts_, pred_cams_, \
-            bboxes_xyxy_, image_path_, frame_id_, person_id_ = \
+        bboxes_xyxy_, image_path_, frame_id_, person_id_ = \
             [], [], [], [], [], [], [], [], []
         human_data = HumanData()
         frames_folder = osp.join(args.output, 'images')
@@ -472,7 +487,6 @@ def multi_person_with_mmtracking(args, frames_iter):
 
 
 def main(args):
-
     # prepare input
     frames_iter = prepare_frames(args.input_path)
 
@@ -536,7 +550,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--render_choice',
         type=str,
-        default='hq',
+        default='hq',  # pointcloud hq mq lq
         help='Render choice parameters')
     parser.add_argument(
         '--palette', type=str, default='segmentation', help='Color theme')
@@ -554,13 +568,13 @@ if __name__ == '__main__':
         type=str,
         default=None,
         help='Smooth the data through the specified type.'
-        'Select in [oneeuro,gaus1d,savgol].')
+             'Select in [oneeuro,gaus1d,savgol].')
     parser.add_argument(
         '--speed_up_type',
         type=str,
         default=None,
         help='Speed up data processing through the specified type.'
-        'Select in [deciwatch].')
+             'Select in [deciwatch].')
     parser.add_argument(
         '--focal_length', type=float, default=5000., help='Focal lenght')
     parser.add_argument(

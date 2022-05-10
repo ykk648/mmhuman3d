@@ -27,8 +27,8 @@ hrnet_extra = dict(
         num_modules=1,
         num_branches=1,
         block='BOTTLENECK',
-        num_blocks=(4, ),
-        num_channels=(64, )),
+        num_blocks=(4,),
+        num_channels=(64,)),
     stage2=dict(
         num_modules=1,
         num_branches=2,
@@ -67,6 +67,7 @@ hrnet_extra = dict(
 )
 
 find_unused_parameters = True
+img_res = 224
 
 model = dict(
     type='ImageBodyModelEstimator',
@@ -82,9 +83,9 @@ model = dict(
         smpl_mean_params='data/body_models/smpl_mean_params.npz',
         num_deconv_layers=2,
         num_deconv_filters=[128] *
-        2,  # num_deconv_filters = [num_deconv_filters] * num_deconv_layers
+                           2,  # num_deconv_filters = [num_deconv_filters] * num_deconv_layers
         num_deconv_kernels=[4] *
-        2,  # num_deconv_kernels = [num_deconv_kernels] * num_deconv_layers
+                           2,  # num_deconv_kernels = [num_deconv_kernels] * num_deconv_layers
         use_heatmaps='part_segm',
         use_keypoint_attention=True,
         backbone='hrnet_w32-conv',
