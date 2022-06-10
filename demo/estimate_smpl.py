@@ -40,7 +40,6 @@ except (ImportError, ModuleNotFoundError):
 try:
     from mmtrack.apis import inference_mot
     from mmtrack.apis import init_model as init_tracking_model
-
     has_mmtrack = True
 except (ImportError, ModuleNotFoundError):
     has_mmtrack = False
@@ -166,8 +165,8 @@ def single_person_with_mmdet(args, frames_iter):
                 extracted_results=feature_results_seq,
                 with_track_id=False)
         elif mesh_model.cfg.model.type == 'ImageBodyModelEstimator':
-            if args.speed_up_type and i % speed_up_interval != 0 \
-                    and i <= speed_up_frames:
+            if args.speed_up_type and i % speed_up_interval != 0\
+                 and i <= speed_up_frames:
                 mesh_results = [{
                     'bbox': np.zeros((5)),
                     'camera': np.zeros((3)),
@@ -226,10 +225,13 @@ def single_person_with_mmdet(args, frames_iter):
     # smooth
     if args.smooth_type is not None:
         smpl_poses = smooth_process(
-            smpl_poses.reshape(frame_num, 24, 9), smooth_type=args.smooth_type)
+            smpl_poses.reshape(frame_num, 24, 9),
+            smooth_type=args.smooth_type).reshape(frame_num, 24, 3, 3)
         verts = smooth_process(verts, smooth_type=args.smooth_type)
         keypoints_3d = smooth_process(keypoints_3d, smooth_type=args.smooth_type)
-        smpl_poses = smpl_poses.reshape(frame_num, 24, 3, 3)
+        pred_cams = smooth_process(
+            pred_cams[:, np.newaxis],
+            smooth_type=args.smooth_type).reshape(frame_num, 3)
 
     if smpl_poses.shape[1:] == (24, 3, 3):
         smpl_poses = rotmat_to_aa(smpl_poses)
@@ -401,10 +403,12 @@ def multi_person_with_mmtracking(args, frames_iter):
     # smooth
     if args.smooth_type is not None:
         smpl_poses = smooth_process(
-            smpl_poses.reshape(frame_num, max_instance, 24, 9),
-            smooth_type=args.smooth_type)
+            smpl_poses.reshape(frame_num, -1, 24, 9),
+            smooth_type=args.smooth_type).reshape(frame_num, -1, 24, 3, 3)
         verts = smooth_process(verts, smooth_type=args.smooth_type)
-        smpl_poses = smpl_poses.reshape(frame_num, max_instance, 24, 3, 3)
+        pred_cams = smooth_process(
+            pred_cams[:, np.newaxis],
+            smooth_type=args.smooth_type).reshape(frame_num, -1, 3)
 
     if smpl_poses.shape[2:] == (24, 3, 3):
         smpl_poses = rotmat_to_aa(smpl_poses)
@@ -491,6 +495,7 @@ def multi_person_with_mmtracking(args, frames_iter):
 
 
 def main(args):
+
     # prepare input
     frames_iter = prepare_frames(args.input_path)
 
@@ -572,13 +577,13 @@ if __name__ == '__main__':
         type=str,
         default=None,
         help='Smooth the data through the specified type.'
-             'Select in [oneeuro,gaus1d,savgol].')
+        'Select in [oneeuro,gaus1d,savgol].')
     parser.add_argument(
         '--speed_up_type',
         type=str,
         default=None,
         help='Speed up data processing through the specified type.'
-             'Select in [deciwatch].')
+        'Select in [deciwatch].')
     parser.add_argument(
         '--focal_length', type=float, default=5000., help='Focal lenght')
     parser.add_argument(
