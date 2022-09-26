@@ -1,5 +1,13 @@
 from setuptools import find_packages, setup
 
+try:
+    import torch
+    from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+    cmd_class = {'build_ext': BuildExtension}
+except ModuleNotFoundError:
+    cmd_class = {}
+    print('Skip building ext ops due to the absence of torch.')
+
 
 def readme():
     with open('README.md', encoding='utf-8') as f:
@@ -12,6 +20,22 @@ def get_version():
     with open(version_file, 'r', encoding='utf-8') as f:
         exec(compile(f.read(), version_file, 'exec'))
     return locals()['__version__']
+
+
+def get_extensions():
+    extensions = []
+    try:
+        if torch.cuda.is_available():
+            ext_ops = CUDAExtension(
+                'mmhuman3d.core.renderer.mpr_renderer.cuda.rasterizer',  # noqa: E501
+                [
+                    'mmhuman3d/core/renderer/mpr_renderer/cuda/rasterizer.cpp',  # noqa: E501
+                    'mmhuman3d/core/renderer/mpr_renderer/cuda/rasterizer_kernel.cu',  # noqa: E501
+                ])
+            extensions.append(ext_ops)
+    except Exception as e:
+        print(f'Skip building ext ops: {e}')
+    return extensions
 
 
 def parse_requirements(fname='requirements.txt', with_version=True):
@@ -93,7 +117,7 @@ def parse_requirements(fname='requirements.txt', with_version=True):
 setup(
     name='mmhuman3d',
     version=get_version(),
-    description='OpenMMLab 3D Human Toolbox and Benchmark',
+    description='OpenMMLab 3D Human Parametric Model Toolbox and Benchmark',
     long_description=readme(),
     long_description_content_type='text/markdown',
     author='OpenMMLab',
@@ -101,6 +125,8 @@ setup(
     keywords='3D Human',
     url='https://github.com/open-mmlab/mmhuman3d',
     packages=find_packages(exclude=('configs', 'tools', 'demo')),
+    ext_modules=get_extensions(),
+    cmdclass=cmd_class,
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
